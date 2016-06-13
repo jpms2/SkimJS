@@ -1,9 +1,16 @@
 module Value (Value (..)) where
+import Language.ECMAScript3.Syntax  
 
 data Value = Bool Bool
     | Int Int
     | String String
     | Var String
+    | List [Value]
+    | Error String
+    | FunctionValue Id [Id] [Statement]
+    | Return Value
+    | Undeclared Value
+    | Break
     | Nil
 
 --
@@ -16,7 +23,13 @@ instance Show Value where
   show (Int int) = show int
   show (String str) = "\"" ++ str ++ "\""
   show (Var name) = name
-  show Nil = "undefined"
+  show (List val) = show val
+  show (Error str) = "Error: " ++ str
+  show (Return a) = show a
+  show (Undeclared a) = show a
+  show (FunctionValue (Id name) params statemens) =  "Function " ++ name
+  show Nil = ""
+  show Break = "Break"
   
 -- This function could be replaced by (unwords.map show). The unwords
 -- function takes a list of String values and uses them to build a 
@@ -24,4 +37,4 @@ instance Show Value where
 showListContents :: [Value] -> String
 showListContents [] = ""
 showListContents [a] = show a
-showListContents (a:as) = show a ++ ", " ++ (showListContents as)
+showListContents (a:as) = show a ++ " " ++ (showListContents as)
