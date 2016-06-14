@@ -20,14 +20,14 @@ evalForInit env (ExprInit expr) = evalExpr env expr -- for(int x = 0; anything)
 -- ////////////////////////////////////////////////////
 
 evalExpr :: StateT -> Expression -> StateTransformer Value
-evalExpr env (VarRef (Id id)) = stateLookup env id  -- definicao de variavel
-evalExpr env (IntLit int) = return $ Int int        -- constante inteira
-evalExpr env (BoolLit bool) = return $ Bool bool    -- constante booleana
-evalExpr env (StringLit str ) = return $ String str -- constante inteira
-evalExpr env (ArrayLit []) = return $ List []       -- lista vazia
-evalExpr env (ArrayLit (x:xs)) = return $ List values -- lista nao vazia
+evalExpr env (VarRef (Id id)) = stateLookup env id
+evalExpr env (IntLit int) = return $ Int int
+evalExpr env (BoolLit bool) = return $ Bool bool
+evalExpr env (StringLit str ) = return $ String str
+evalExpr env (ArrayLit []) = return $ List []
+evalExpr env (ArrayLit (x:xs)) = return $ List values
     where values = evalList env (x:xs) []
-evalExpr env (DotRef expr id) = do -- propriedades head e tail daas listas
+evalExpr env (DotRef expr id) = do
         case id of
             (Id "head") -> do
                 list <- evalExpr env expr
@@ -41,11 +41,11 @@ evalExpr env (DotRef expr id) = do -- propriedades head e tail daas listas
                     (List []) -> return $ List []
                     (List (x:xs)) -> return $ List xs
                     _ -> error ("Invalid Expression")
-evalExpr env (InfixExpr op expr1 expr2) = do -- expressao infixa
+evalExpr env (InfixExpr op expr1 expr2) = do
     v1 <- evalExpr env expr1
     v2 <- evalExpr env expr2
     infixOp env op v1 v2
-evalExpr env (UnaryAssignExpr PostfixDec (LVar var)) = do --expressao unaria
+evalExpr env (UnaryAssignExpr PostfixDec (LVar var)) = do
     v <- stateLookup env var
     case v of 
         (Error _) -> error("Variable "++ show var ++" Not Defined")
@@ -73,7 +73,7 @@ evalExpr env (AssignExpr OpAssign (LVar var) expr) = do
         _ -> do
             e <- evalExpr env expr
             setVar var e
-evalExpr env (CallExpr functionName paramsExpCall) = do -- chamada de funcao
+evalExpr env (CallExpr functionName paramsExpCall) = do
      result <- evalExpr env functionName
      case result of
         (Error _) -> error "Function not defined"
@@ -124,9 +124,9 @@ getValue (ST f) = valor
 -- ////////////////////////////////////////////////////
 
 evalStmt :: StateT -> Statement -> StateTransformer Value
-evalStmt env EmptyStmt = return Nil -- stmt vazio
-evalStmt env (VarDeclStmt []) = return Nil 
-evalStmt env (ReturnStmt expression) = do -- return
+evalStmt env EmptyStmt = return Nil
+evalStmt env (VarDeclStmt []) = return Nil
+evalStmt env (ReturnStmt expression) = do
     case expression of
         (Nothing) -> return (Return Nil)
         (Just expr) -> do
@@ -184,25 +184,18 @@ evalStmt env (ForStmt initial maybeComparation maybeIncrement stmts) = do
                         (Just increment) -> do
                             evalExpr env increment
                             evalStmt env (ForStmt NoInit maybeComparation maybeIncrement stmts)
-                else return Nil             
-        
-evalStmt env (WhileStmt maybeComparation stmts) = do
-    evalForInit env initial
-    case maybeComparation of
-        Nothing -> do
-            a <-evalStmt env stmts 
-            case a of
+                else return Nil        
+
+evalStmt env (WhileStmt comparation stmts) = do
+    result <- evalExpr env comparation
+    case result of
+        (Bool b) -> if b then do
+            value <- evalStmt env stmts
+            case value of
                 Break -> return Break
                 (Return val) -> return (Return val)
-        (Just comparation) -> do
-            result <- evalExpr env comparation
-            case result of
-                (Bool b) -> if b then do
-                   value <- evalStmt env stmts
-                   case value of
-                    Break -> return Break
-                    (Return val) -> return (Return val) 
-                else return Nil        
+                _ -> evalStmt env (WhileStmt comparation stmts) 
+        else return Nil
 
 -- Do not touch this one :)
 evaluate :: StateT -> [Statement] -> StateTransformer Value

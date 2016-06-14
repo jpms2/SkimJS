@@ -210,7 +210,7 @@ data Statement
     -- ^ @if (e) stmt1 else stmt2@, spec 12.5
   | SwitchStmt Expression [CaseClause]
     -- ^ @switch (e) clauses@, spec 12.11
-  | WhileStmt (Maybe Expression) Statement
+  | WhileStmt Expression Statement
     -- ^ @while (e) do stmt@, spec 12.6
   | DoWhileStmt Statement Expression
     -- ^ @do stmt while (e);@, spec 12.6
